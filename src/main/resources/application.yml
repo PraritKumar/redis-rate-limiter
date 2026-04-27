@@ -1,0 +1,39 @@
+# ──────────────────────────────────────────────
+#  Redis Rate Limiter — Application Configuration
+# ──────────────────────────────────────────────
+
+spring:
+  application:
+    name: redis-rate-limiter
+
+  # ── Redis Connection ───────────────────────
+  data:
+    redis:
+      # When running with Docker Compose, "redis" is the container hostname
+      # When running locally (no Docker), change to "localhost"
+      host: redis
+      port: 6379
+      # No password set for local dev — add password for production
+      timeout: 2000ms           # connection timeout
+      lettuce:
+        pool:
+          max-active: 10        # max connections in pool
+          max-idle: 5
+          min-idle: 2
+
+# ── Server ────────────────────────────────────
+server:
+  port: 8080
+
+# ── Swagger UI ────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# ── Logging ───────────────────────────────────
+logging:
+  level:
+    com.prarit.ratelimiter: DEBUG    # see rate limit debug logs
+    org.springframework.data.redis: INFO

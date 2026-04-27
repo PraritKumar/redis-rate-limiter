@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────
+# Runs two containers:
+#   redis → Redis 7 (our distributed counter store)
+#   app   → Spring Boot rate limiter API
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine              # Official Redis image, alpine = minimal
+    container_name: rate-limiter-redis
+    ports:
+      - "6379:6379"                    # Expose so you can connect via redis-cli locally
+    command: redis-server --appendonly yes
+    # --appendonly yes → enables AOF persistence
+    # Redis by default is in-memory only. With appendonly, every write is
+    # logged to disk. Rate limit counters survive container restarts.
+    volumes:
+      - redis_data:/data               # Persist Redis data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]  # Redis responds "PONG" when ready
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Spring Boot App ───────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rate-limiter-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis    # "redis" = container name = Docker DNS
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_healthy     # Wait for Redis PONG before starting
+    restart: unless-stopped
+
+volumes:
+  redis_data:
